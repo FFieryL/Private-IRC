@@ -43,6 +43,22 @@ wss.on("connection", (ws, req) => {
     ws.on("message", (data) => {
         try {
             const parsed = JSON.parse(data.toString());
+
+            if (parsed.type === "request_list") {
+                const onlineUsers = [];
+                wss.clients.forEach(client => {
+                    if (client.readyState === 1) {
+                        onlineUsers.push(client.username);
+                    }
+                });
+                
+                ws.send(JSON.stringify({
+                    type: "user_list",
+                    users: onlineUsers
+                }));
+                return; 
+            }
+            
             const broadcastData = JSON.stringify({
                 user: parsed.user || ws.username, 
                 text: parsed.text,
