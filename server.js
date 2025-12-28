@@ -2,7 +2,7 @@ let messages = [];
 const MAX_MESSAGES = 25;
 
 const express = require("express");
-const app = express(); // <-- this defines `app`
+const app = express();
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
@@ -54,3 +54,5 @@ app.get("/poll", (req, res) => {
 
     app.once("newMessage", listener);
 });
+
+app.listen(PORT, () => {console.log(`IRC relay running on port ${PORT}`)});
