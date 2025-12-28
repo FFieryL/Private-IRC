@@ -28,10 +28,8 @@ wss.on("connection", (ws, req) => {
 
     // 3. BROADCAST JOIN MESSAGE: "User is online"
     const joinMessage = JSON.stringify({
-        user: "System",
-        text: `${username} is online`,
-        time: Date.now(),
-        isSystem: true // Useful for styling differently on the frontend
+        text: `&a${username} is online`,
+        time: Date.now()
     });
 
     wss.clients.forEach((client) => {
@@ -46,7 +44,7 @@ wss.on("connection", (ws, req) => {
         try {
             const parsed = JSON.parse(data.toString());
             const broadcastData = JSON.stringify({
-                user: ws.username, // Always use the verified username from the socket
+                user: ws.username, 
                 text: parsed.text,
                 time: Date.now()
             });
@@ -66,10 +64,8 @@ wss.on("connection", (ws, req) => {
         console.log(`User ${ws.username} disconnected`);
         
         const leaveMessage = JSON.stringify({
-            user: "System",
-            text: `${ws.username} has left`,
-            time: Date.now(),
-            isSystem: true
+            text: `&c${ws.username} has left`,
+            time: Date.now()
         });
 
         wss.clients.forEach((client) => {
