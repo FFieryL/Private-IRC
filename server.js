@@ -2,61 +2,22 @@ const express = require("express");
 const app = express();
 app.use(express.json());
 
-const PORT = process.env.PORT || 3000;
-
 let messages = [];
-const MAX_MESSAGES = 25;
+const MAX_MESSAGES = 100;
 
-app.setMaxListeners(50);
-
-// Send message
 app.post("/send", (req, res) => {
-    const { user, text, channel = "global" } = req.body;
+  const { user, text, channel = "global" } = req.body;
 
-    if (!user || !text) return res.status(400).json({ error: "Invalid message" });
+  messages.push({ user, text, channel, time: Date.now() });
+  if (messages.length > MAX_MESSAGES) messages.shift();
 
-    const msg = {
-        user,
-        text,
-        channel,
-        time: Date.now()
-    };
-
-    messages.push(msg);
-    if (messages.length > MAX_MESSAGES) messages.shift();
-
-    app.emit("newMessage", msg);
-
-    return res.json({ ok: true });
+  res.sendStatus(200);
 });
-
 
 app.get("/poll", (req, res) => {
-    const since = Number(req.query.since || Date.now()); 
-    const newMessages = messages.filter(m => m.time > since);
-
-    if (newMessages.length > 0) return res.json(newMessages);
-
-    let responded = false;
-
-    const timeout = setTimeout(() => {
-        if (!responded) {
-            responded = true;
-            app.removeListener("newMessage", listener);
-            res.json([]);
-        }
-    }, 30000);
-
-    const listener = (msg) => {
-        if (msg.time > since && !responded) {
-            responded = true;
-            clearTimeout(timeout);
-            app.removeListener("newMessage", listener);
-            res.json([msg]);
-        }
-    };
-
-    app.on("newMessage", listener);
+  const since = Number(req.query.since || 0);
+  res.json(messages.filter(m => m.time > since));
 });
 
-app.listen(PORT, () => console.log(`IRC relay running on port ${PORT}`));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("CT IRC relay running"));
