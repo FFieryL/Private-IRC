@@ -36,23 +36,31 @@ app.get("/poll", (req, res) => {
     const newMessages = messages.filter(m => m.time > since);
 
     if (newMessages.length > 0) {
-        res.json(newMessages);
-        return;
+        return res.json(newMessages);
     }
 
     // No new messages: hold request for up to 30s
+    let responded = false;
+
     const timeout = setTimeout(() => {
-        res.json([]);
+        if (!responded) {
+            responded = true;
+            app.removeListener("newMessage", listener);
+            res.json([]);
+        }
     }, 30000);
 
     const listener = (msg) => {
-        if (msg.time > since) {
+        if (msg.time > since && !responded) {
+            responded = true;
             clearTimeout(timeout);
+            app.removeListener("newMessage", listener);
             res.json([msg]);
         }
     };
 
-    app.once("newMessage", listener);
+    app.on("newMessage", listener);
 });
+
 
 app.listen(PORT, () => {console.log(`IRC relay running on port ${PORT}`)});
