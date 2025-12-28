@@ -1,6 +1,6 @@
 const express = require("express");
 const { WebSocketServer } = require("ws");
-const url = require("url"); // Required to parse the ?user= query string
+const url = require("url");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -9,38 +9,50 @@ const server = app.listen(PORT, () => console.log(`Server running on port ${PORT
 const wss = new WebSocketServer({ server });
 
 wss.on("connection", (ws, req) => {
-    // 1. Extract the username from the URL (e.g., /?user=PlayerName)
+    // 1. Extract the username from the URL
     const parameters = url.parse(req.url, true).query;
     const username = parameters.user || "Unknown";
     
-    // Store the username on the 'ws' object so we can check it later
+    // Store the username on the 'ws' object
     ws.username = username;
 
     console.log(`New connection attempt from user: ${username}`);
 
-    // 2. DEDUPLICATION: Check for existing connections with the SAME username
+    // 2. DEDUPLICATION: Kick existing connections with the same name
     wss.clients.forEach((client) => {
-        // Look for a client that isn't the current one AND has the same username
         if (client !== ws && client.username === username) {
             console.log(`Kicking ghost connection for user: ${username}`);
-            
-            // 1000 is a "Normal Closure" code. 
-            // It's gentler than terminate() and helps prevent client-side crash loops.
             client.close(1000, "Logged in from another location");
         }
     });
 
+    // 3. BROADCAST JOIN MESSAGE: "User is online"
+    const joinMessage = JSON.stringify({
+        user: "System",
+        text: `${username} is online`,
+        time: Date.now(),
+        isSystem: true // Useful for styling differently on the frontend
+    });
+
+    wss.clients.forEach((client) => {
+        // Send to everyone except the person who just joined
+        if (client !== ws && client.readyState === 1) {
+            client.send(joinMessage);
+        }
+    });
+
+    // 4. HANDLE INCOMING MESSAGES
     ws.on("message", (data) => {
         try {
             const parsed = JSON.parse(data.toString());
             const broadcastData = JSON.stringify({
-                user: parsed.user,
+                user: ws.username, // Always use the verified username from the socket
                 text: parsed.text,
                 time: Date.now()
             });
 
             wss.clients.forEach((client) => {
-                if (client.readyState === 1) { // 1 = OPEN
+                if (client.readyState === 1) {
                     client.send(broadcastData);
                 }
             });
@@ -49,6 +61,21 @@ wss.on("connection", (ws, req) => {
         }
     });
 
-    // Use the stored username in the disconnect log
-    ws.on("close", () => console.log(`User ${ws.username} disconnected`));
+    // 5. BROADCAST LEAVE MESSAGE
+    ws.on("close", () => {
+        console.log(`User ${ws.username} disconnected`);
+        
+        const leaveMessage = JSON.stringify({
+            user: "System",
+            text: `${ws.username} has left`,
+            time: Date.now(),
+            isSystem: true
+        });
+
+        wss.clients.forEach((client) => {
+            if (client.readyState === 1) {
+                client.send(leaveMessage);
+            }
+        });
+    });
 });
