@@ -1,16 +1,19 @@
-let messages = [];
-const MAX_MESSAGES = 25;
-
 const express = require("express");
 const app = express();
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 
+let messages = [];
+const MAX_MESSAGES = 25;
+
+app.setMaxListeners(50);
 
 // Send message
 app.post("/send", (req, res) => {
     const { user, text, channel = "global" } = req.body;
+
+    if (!user || !text) return res.status(400).json({ error: "Invalid message" });
 
     const msg = {
         user,
@@ -20,26 +23,20 @@ app.post("/send", (req, res) => {
     };
 
     messages.push(msg);
-
-    // Trim old messages if we exceed MAX_MESSAGES
     if (messages.length > MAX_MESSAGES) messages.shift();
 
-    // Emit new message for long-poll listeners
     app.emit("newMessage", msg);
 
-    res.sendStatus(200);
+    return res.json({ ok: true });
 });
 
-// Poll messages
+
 app.get("/poll", (req, res) => {
-    const since = Number(req.query.since || 0);
+    const since = Number(req.query.since || Date.now()); 
     const newMessages = messages.filter(m => m.time > since);
 
-    if (newMessages.length > 0) {
-        return res.json(newMessages);
-    }
+    if (newMessages.length > 0) return res.json(newMessages);
 
-    // No new messages: hold request for up to 30s
     let responded = false;
 
     const timeout = setTimeout(() => {
@@ -62,5 +59,4 @@ app.get("/poll", (req, res) => {
     app.on("newMessage", listener);
 });
 
-
-app.listen(PORT, () => {console.log(`IRC relay running on port ${PORT}`)});
+app.listen(PORT, () => console.log(`IRC relay running on port ${PORT}`));
