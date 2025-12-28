@@ -44,10 +44,10 @@ wss.on("connection", (ws, req) => {
         try {
             const parsed = JSON.parse(data.toString());
             const broadcastData = JSON.stringify({
-                user: ws.username, 
+                user: parsed.user || ws.username, 
                 text: parsed.text,
                 time: Date.now()
-            });
+        });
 
             wss.clients.forEach((client) => {
                 if (client.readyState === 1) {
