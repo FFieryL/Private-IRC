@@ -1,5 +1,12 @@
 let messages = [];
-const MAX_MESSAGES = 25; // only keep the last 25 messages
+const MAX_MESSAGES = 25;
+
+const express = require("express");
+const app = express(); // <-- this defines `app`
+app.use(express.json());
+
+const PORT = process.env.PORT || 3000;
+
 
 // Send message
 app.post("/send", (req, res) => {
