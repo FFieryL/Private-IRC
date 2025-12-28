@@ -3,7 +3,7 @@ const app = express();
 app.use(express.json());
 
 let messages = [];
-const MAX_MESSAGES = 100;
+const MAX_MESSAGES = 30;
 
 app.post("/send", (req, res) => {
   const { user, text, channel = "global" } = req.body;
