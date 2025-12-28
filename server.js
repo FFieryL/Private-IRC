@@ -7,17 +7,26 @@ app.use(express.json());
 const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
-// Initialize WebSocket Server
+
 const wss = new WebSocketServer({ server });
 
-wss.on("connection", (ws) => {
-    console.log("New client connected");
+wss.on("connection", (ws, req) => {
+
+    const clientIp = req.socket.remoteAddress;
+    console.log(`New connection attempt from IP: ${clientIp}`);
+
+
+    wss.clients.forEach((client) => {
+
+        if (client !== ws && client._socket.remoteAddress === clientIp) {
+            console.log(`Kicking ghost connection for IP: ${clientIp}`);
+            client.terminate(); 
+        }
+    });
 
     ws.on("message", (data) => {
         try {
-            const parsed = JSON.parse(data);
-            
-            // Broadcast the message to EVERYONE connected
+            const parsed = JSON.parse(data.toString());
             const broadcastData = JSON.stringify({
                 user: parsed.user,
                 text: parsed.text,
@@ -25,7 +34,7 @@ wss.on("connection", (ws) => {
             });
 
             wss.clients.forEach((client) => {
-                if (client.readyState === 1) { // 1 = OPEN
+                if (client.readyState === 1) {
                     client.send(broadcastData);
                 }
             });
