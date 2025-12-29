@@ -59,7 +59,7 @@ wss.on("connection", (ws, req) => {
                 return; 
             }
 
-            if (parsed.type === "keep_alive") return;
+            if (parsed.type === "keep_alive") return console.log(`${username} sent keep_alive`);
             
             const broadcastData = JSON.stringify({
                 user: parsed.user || ws.username, 
