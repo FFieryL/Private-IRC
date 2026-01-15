@@ -7,6 +7,10 @@ const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 const wss = new WebSocketServer({ server });
+const WebSocket = require("ws");
+
+const SERVER_START_TIME = Date.now();
+const JOIN_SUPPRESS_MS = 15000;
 
 wss.on("connection", (ws, req) => {
     // 1. Extract the username from the URL
@@ -27,17 +31,22 @@ wss.on("connection", (ws, req) => {
     });
 
     // 3. BROADCAST JOIN MESSAGE: "User is online"
-    const joinMessage = JSON.stringify({
-        text: `&a${username} is online`,
-        time: Date.now()
-    });
+    const shouldBroadcastJoin = Date.now() - SERVER_START_TIME > JOIN_SUPPRESS_MS;
 
-    wss.clients.forEach((client) => {
-        // Send to everyone except the person who just joined
-        if (client !== ws && client.readyState === 1) {
-            client.send(joinMessage);
-        }
-    });
+    if (shouldBroadcastJoin) {
+        setImmediate(() => {
+            const joinMessage = JSON.stringify({
+                text: `&a${username} is online`,
+                time: Date.now()
+            });
+    
+            wss.clients.forEach((client) => {
+                if (client !== ws && client.readyState === WebSocket.OPEN) {
+                    client.send(joinMessage);
+                }
+            });
+        });
+    }
 
     // 4. HANDLE INCOMING MESSAGES
     ws.on("message", (data) => {
@@ -78,6 +87,7 @@ wss.on("connection", (ws, req) => {
     // 5. BROADCAST LEAVE MESSAGE
     ws.on("close", () => {
         console.log(`User ${ws.username} disconnected`);
+        if (Date.now() - SERVER_START_TIME < JOIN_SUPPRESS_MS) return;
         
         const leaveMessage = JSON.stringify({
             text: `&c${ws.username} has left`,
