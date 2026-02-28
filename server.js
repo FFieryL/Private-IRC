@@ -19,6 +19,20 @@ mongoose.connect(process.env.MONGO_URI)
 const userSchema = new mongoose.Schema({
   username: { type: String, unique: true, required: true },
   joinedAt: { type: Date, default: Date.now }
+}, {
+  versionKey: false 
+});
+
+app.get("/users", async (req, res) => {
+    const users = await User.find({}, { _id: 0, username: 1 })
+        .sort({ username: 1 });
+
+    const list = users.map(u => `<li>${u.username}</li>`).join("");
+
+    res.send(`
+        <h1>Registered Users</h1>
+        <ul>${list}</ul>
+    `);
 });
 
 const User = mongoose.model("User", userSchema);
