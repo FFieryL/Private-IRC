@@ -2,6 +2,7 @@ const express = require("express");
 const { WebSocketServer } = require("ws");
 const WebSocket = require("ws");
 const url = require("url");
+const mongoose = require("mongoose");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,6 +11,17 @@ const server = app.listen(PORT, () =>
 );
 
 const wss = new WebSocketServer({ server });
+
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch(err => console.error(err));
+
+const userSchema = new mongoose.Schema({
+  username: { type: String, unique: true, required: true },
+  joinedAt: { type: Date, default: Date.now }
+});
+
+const User = mongoose.model("User", userSchema);
 
 /**
  * Track exactly ONE socket per username
@@ -20,11 +32,21 @@ const users = new Map();
 const SERVER_START_TIME = Date.now();
 const JOIN_SUPPRESS_MS = 15000;
 
-wss.on("connection", (ws, req) => {
+wss.on("connection", async (ws, req) => {
     // 1. Extract username
     const parameters = url.parse(req.url, true).query;
     const username = parameters.user || "Unknown";
     ws.username = username;
+
+    try {
+        await User.updateOne(
+            { username },
+            { username },
+            { upsert: true }
+        );
+    } catch (err) {
+        console.error("Database save error:", err);
+    }
 
     console.log(`New connection attempt from user: ${username}`);
 
