@@ -3,7 +3,7 @@ const { WebSocketServer } = require("ws");
 const WebSocket = require("ws");
 const url = require("url");
 const mongoose = require("mongoose");
-const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
+const { Client, GatewayIntentBits, EmbedBuilder, REST, Routes } = require("discord.js");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,13 +20,31 @@ const discordClient = new Client({
         GatewayIntentBits.MessageContent
     ]
 });
-
 const DISCORD_CHANNEL_ID = process.env.DISCORD_CHANNEL_ID;
+const commands = [
+    {
+        name: "irconline",
+        description: "Show online users"
+    }
+];
+
+const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_BOT_TOKEN);
 
 discordClient.login(process.env.DISCORD_BOT_TOKEN);
 
-discordClient.on("ready", () => {
+discordClient.once("clientReady", async () => {
     console.log(`Discord bot ready: ${discordClient.user.tag}`);
+
+    try {
+        await rest.put(
+            Routes.applicationCommands(discordClient.user.id),
+            { body: commands }
+        );
+
+        console.log("Slash commands registered!");
+    } catch (err) {
+        console.error(err);
+    }
 });
 
 discordClient.on("messageCreate", (message) => {
@@ -45,6 +63,19 @@ discordClient.on("messageCreate", (message) => {
         if (client.readyState === WebSocket.OPEN) {
             client.send(data);
         }
+    }
+});
+
+discordClient.on("interactionCreate", async (interaction) => {
+    if (!interaction.isChatInputCommand()) return;
+
+    if (interaction.commandName === "irconline") {
+        const list = [...users.keys()].join(", ");
+
+        await interaction.reply({
+            content: `🟢 Online users (${users.size}): ${list}`,
+            ephemeral: true
+        });
     }
 });
 
