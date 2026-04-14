@@ -3,6 +3,7 @@ const { WebSocketServer } = require("ws");
 const WebSocket = require("ws");
 const url = require("url");
 const mongoose = require("mongoose");
+const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -12,15 +13,48 @@ const server = app.listen(PORT, () =>
 
 const wss = new WebSocketServer({ server });
 
+const discordClient = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent
+    ]
+});
+
+const DISCORD_CHANNEL_ID = process.env.DISCORD_CHANNEL_ID;
+
+discordClient.login(process.env.DISCORD_BOT_TOKEN);
+
+discordClient.on("ready", () => {
+    console.log(`Discord bot ready: ${discordClient.user.tag}`);
+});
+
+discordClient.on("messageCreate", (message) => {
+    if (message.author.bot) return;
+    if (message.channel.id !== DISCORD_CHANNEL_ID) return;
+
+    const data = JSON.stringify({
+        user: `[Discord] ${message.author.username}`,
+        text: message.content,
+        time: Date.now()
+    });
+
+    for (const client of users.values()) {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(data);
+        }
+    }
+});
+
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
-  .catch(err => console.error(err));
+    .then(() => console.log("MongoDB connected"))
+    .catch(err => console.error(err));
 
 const userSchema = new mongoose.Schema({
-  username: { type: String, unique: true, required: true },
-  joinedAt: { type: Date, default: Date.now }
+    username: { type: String, unique: true, required: true },
+    joinedAt: { type: Date, default: Date.now }
 }, {
-  versionKey: false 
+    versionKey: false
 });
 
 app.get("/users", async (req, res) => {
@@ -107,12 +141,28 @@ wss.on("connection", async (ws, req) => {
                 return;
             }
 
-            // Chat message broadcast
             const broadcastData = JSON.stringify({
                 user: parsed.user || ws.username,
                 text: parsed.text,
                 time: Date.now()
             });
+
+            if ((parsed.user || ws.username).startsWith("[Discord]")) return;
+
+            const cleanText = parsed.text.replace(/&[a-z]/g, "");
+
+            // Send to Discord
+            const channel = discordClient.channels.cache.get(DISCORD_CHANNEL_ID);
+
+            if (channel) {
+                const embed = new EmbedBuilder()
+                    .setAuthor({ name: parsed.user || ws.username })
+                    .setDescription(cleanText)
+                    .setColor(0x0099ff)
+                    .setTimestamp();
+
+                channel.send({ embeds: [embed] });
+            }
 
             for (const client of users.values()) {
                 if (client.readyState === WebSocket.OPEN) {
