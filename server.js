@@ -156,7 +156,11 @@ wss.on("connection", async (ws, req) => {
                 client.send(joinMessage);
             }
         }
-        sendDiscord(`🟢 ${username} joined the game`);
+        sendDiscordEmbed({
+            title: "Player Joined",
+            description: `${username} joined the game`,
+            color: 0x00ff00
+        });
     }
 
     // 4. Handle incoming messages
@@ -228,14 +232,28 @@ wss.on("connection", async (ws, req) => {
                     client.send(leaveMessage);
                 }
             }
+
+            sendDiscordEmbed({
+                title: "Player Left",
+                description: `${ws.username} left the game`,
+                color: 0xff0000
+            });
         }
     });
 });
 
-async function sendDiscord(msg) {
+async function sendDiscordEmbed({ title, description, color }) {
     try {
         const channel = await discordClient.channels.fetch(DISCORD_CHANNEL_ID);
-        if (channel) channel.send(msg);
+        if (!channel) return;
+
+        const embed = new EmbedBuilder()
+            .setTitle(title)
+            .setDescription(description)
+            .setColor(color)
+            .setTimestamp();
+
+        channel.send({ embeds: [embed] });
     } catch (err) {
         console.error("Discord send error:", err);
     }
