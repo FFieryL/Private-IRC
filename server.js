@@ -33,8 +33,10 @@ discordClient.on("messageCreate", (message) => {
     if (message.author.bot) return;
     if (message.channel.id !== DISCORD_CHANNEL_ID) return;
 
+    const name = (message.member?.displayName || message.author.username).replace(/[^\w\s]/g, "");
+
     const data = JSON.stringify({
-        user: `[Discord] ${message.author.username}`,
+        user: `[Discord] ${name}`,
         text: message.content,
         time: Date.now()
     });
@@ -148,7 +150,7 @@ wss.on("connection", async (ws, req) => {
             });
 
             if ((parsed.user || ws.username).startsWith("[Discord]")) return;
-
+            const cleanUser = (parsed.user || ws.username).replace(/&[a-z0-9]/g, "");
             const cleanText = parsed.text.replace(/&[a-z]/g, "");
 
             // Send to Discord
@@ -156,7 +158,7 @@ wss.on("connection", async (ws, req) => {
 
             if (channel) {
                 const embed = new EmbedBuilder()
-                    .setAuthor({ name: parsed.user || ws.username })
+                    .setAuthor({ name: cleanUser })
                     .setDescription(cleanText)
                     .setColor(0x0099ff)
                     .setTimestamp();
