@@ -8,7 +8,6 @@ const { Client, GatewayIntentBits, EmbedBuilder, REST, Routes, ActivityType, Mes
 const app = express();
 const PORT = process.env.PORT || 3000;
 let SERVER_START_TIME;
-let isShuttingDown = false;
 
 const server = app.listen(PORT, () => {
     SERVER_START_TIME = Date.now();
@@ -227,7 +226,6 @@ wss.on("connection", async (ws, req) => {
         if (users.get(ws.username) === ws) {
             users.delete(ws.username);
             
-            if (isShuttingDown) return;
             if (!SERVER_START_TIME || Date.now() - SERVER_START_TIME < JOIN_SUPPRESS_MS || ws.isDuplicate) return;
 
             const leaveMessage = JSON.stringify({
@@ -241,11 +239,11 @@ wss.on("connection", async (ws, req) => {
                 }
             }
 
-            sendDiscordEmbed({
-                title: "Player Left",
-                description: `${ws.username} left the game`,
-                color: 0xff0000
-            });
+            // sendDiscordEmbed({
+            //     title: "Player Left",
+            //     description: `${ws.username} left the game`,
+            //     color: 0xff0000
+            // });
         }
     });
 });
@@ -266,13 +264,3 @@ async function sendDiscordEmbed({ title, description, color }) {
         console.error("Discord send error:", err);
     }
 }
-
-process.on('SIGTERM', () => {
-    isShuttingDown = true;
-    console.log('Shutting down: Suppressing leave messages.');
-    
-    // Close the server gracefully
-    server.close(() => {
-        process.exit(0);
-    });
-});
