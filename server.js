@@ -30,8 +30,6 @@ const commands = [
 
 const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_BOT_TOKEN);
 
-discordClient.login(process.env.DISCORD_BOT_TOKEN);
-
 discordClient.once("clientReady", async () => {
     console.log(`Discord bot ready: ${discordClient.user.tag}`);
 
@@ -46,6 +44,8 @@ discordClient.once("clientReady", async () => {
         console.error(err);
     }
 });
+
+discordClient.login(process.env.DISCORD_BOT_TOKEN);
 
 discordClient.on("messageCreate", (message) => {
     if (message.author.bot) return;
@@ -111,7 +111,7 @@ const User = mongoose.model("User", userSchema);
 const users = new Map();
 
 const SERVER_START_TIME = Date.now();
-const JOIN_SUPPRESS_MS = 15000;
+const JOIN_SUPPRESS_MS = 60000;
 
 wss.on("connection", async (ws, req) => {
     // 1. Extract username
@@ -156,6 +156,7 @@ wss.on("connection", async (ws, req) => {
                 client.send(joinMessage);
             }
         }
+        sendDiscord(`🟢 ${username} joined the game`);
     }
 
     // 4. Handle incoming messages
@@ -230,3 +231,12 @@ wss.on("connection", async (ws, req) => {
         }
     });
 });
+
+async function sendDiscord(msg) {
+    try {
+        const channel = await discordClient.channels.fetch(DISCORD_CHANNEL_ID);
+        if (channel) channel.send(msg);
+    } catch (err) {
+        console.error("Discord send error:", err);
+    }
+}
