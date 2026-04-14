@@ -3,7 +3,7 @@ const { WebSocketServer } = require("ws");
 const WebSocket = require("ws");
 const url = require("url");
 const mongoose = require("mongoose");
-const { Client, GatewayIntentBits, EmbedBuilder, REST, Routes, ActivityType  } = require("discord.js");
+const { Client, GatewayIntentBits, EmbedBuilder, REST, Routes, ActivityType, MessageFlags } = require("discord.js");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -36,7 +36,7 @@ discordClient.once("clientReady", async () => {
     discordClient.user.setPresence({
         activities: [
             {
-                name: "Private",
+                name: "Watching PrivateASF",
                 type: ActivityType.Watching
             }
         ],
@@ -84,7 +84,7 @@ discordClient.on("interactionCreate", async (interaction) => {
 
         await interaction.reply({
             content: `🟢 Online users (${users.size}): ${list}`,
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
         });
     }
 });
@@ -145,6 +145,7 @@ wss.on("connection", async (ws, req) => {
     const existing = users.get(username);
     if (existing && existing.readyState === WebSocket.OPEN) {
         console.log(`Closing previous connection for user: ${username}`);
+        existing.isDuplicate = true; // ✅ mark it
         existing.close(1000, "Duplicate login");
     }
 
@@ -226,7 +227,11 @@ wss.on("connection", async (ws, req) => {
     ws.on("close", () => {
         console.log(`User ${ws.username} disconnected`);
 
-        // Only delete if THIS socket is still the active one
+        if (ws.isDuplicate) {
+            console.log(`Skipping leave message for duplicate: ${ws.username}`);
+            return;
+        }
+
         if (users.get(ws.username) === ws) {
             users.delete(ws.username);
 
