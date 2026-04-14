@@ -3,7 +3,7 @@ const { WebSocketServer } = require("ws");
 const WebSocket = require("ws");
 const url = require("url");
 const mongoose = require("mongoose");
-const { Client, GatewayIntentBits, EmbedBuilder, REST, Routes } = require("discord.js");
+const { Client, GatewayIntentBits, EmbedBuilder, REST, Routes, ActivityType  } = require("discord.js");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -32,6 +32,16 @@ const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_BOT_TOKEN)
 
 discordClient.once("clientReady", async () => {
     console.log(`Discord bot ready: ${discordClient.user.tag}`);
+
+    discordClient.user.setPresence({
+        activities: [
+            {
+                name: "Private",
+                type: ActivityType.Watching
+            }
+        ],
+        status: "online"
+    });
 
     try {
         await rest.put(
