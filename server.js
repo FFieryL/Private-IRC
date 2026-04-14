@@ -7,9 +7,12 @@ const { Client, GatewayIntentBits, EmbedBuilder, REST, Routes, ActivityType, Mes
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const server = app.listen(PORT, () =>
-    console.log(`Server running on port ${PORT}`)
-);
+let SERVER_START_TIME;
+
+const server = app.listen(PORT, () => {
+    SERVER_START_TIME = Date.now();
+    console.log(`Server running on port ${PORT}`);
+});
 
 const wss = new WebSocketServer({ server });
 
@@ -114,13 +117,8 @@ app.get("/users", async (req, res) => {
 
 const User = mongoose.model("User", userSchema);
 
-/**
- * Track exactly ONE socket per username
- * username -> WebSocket
- */
 const users = new Map();
 
-const SERVER_START_TIME = Date.now();
 const JOIN_SUPPRESS_MS = 60000;
 
 wss.on("connection", async (ws, req) => {
@@ -141,7 +139,6 @@ wss.on("connection", async (ws, req) => {
 
     console.log(`New connection attempt from user: ${username}`);
 
-    // 2. Deduplicate using Map (SAFE)
     const existing = users.get(username);
     if (existing && existing.readyState === WebSocket.OPEN) {
         console.log(`Closing previous connection for user: ${username}`);
@@ -149,12 +146,11 @@ wss.on("connection", async (ws, req) => {
         existing.close(1000, "Duplicate login");
     }
 
-    // Register new connection
+
     users.set(username, ws);
 
-    // 3. Broadcast JOIN message (after startup suppression)
-    const shouldBroadcastJoin =
-        Date.now() - SERVER_START_TIME > JOIN_SUPPRESS_MS;
+
+    const shouldBroadcastJoin = SERVER_START_TIME && ((Date.now() - SERVER_START_TIME) > JOIN_SUPPRESS_MS);
 
     if (shouldBroadcastJoin) {
         const joinMessage = JSON.stringify({
@@ -174,12 +170,12 @@ wss.on("connection", async (ws, req) => {
         });
     }
 
-    // 4. Handle incoming messages
+
     ws.on("message", (data) => {
         try {
             const parsed = JSON.parse(data.toString());
 
-            // User list request
+
             if (parsed.type === "request_list") {
                 ws.send(
                     JSON.stringify({
@@ -200,7 +196,7 @@ wss.on("connection", async (ws, req) => {
             const cleanUser = (parsed.user || ws.username).replace(/&[a-z0-9]/g, "");
             const cleanText = parsed.text.replace(/&[a-z]/g, "");
 
-            // Send to Discord
+
             const channel = discordClient.channels.cache.get(DISCORD_CHANNEL_ID);
 
             if (channel) {
@@ -235,7 +231,7 @@ wss.on("connection", async (ws, req) => {
         if (users.get(ws.username) === ws) {
             users.delete(ws.username);
 
-            if (Date.now() - SERVER_START_TIME < JOIN_SUPPRESS_MS) return;
+            if (!SERVER_START_TIME || Date.now() - SERVER_START_TIME < JOIN_SUPPRESS_MS) return;
 
             const leaveMessage = JSON.stringify({
                 text: `&c${ws.username} has left`,
