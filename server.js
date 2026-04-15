@@ -39,7 +39,7 @@ discordClient.once("clientReady", async () => {
     discordClient.user.setPresence({
         activities: [
             {
-                name: "Watching PrivateASF",
+                name: "Watching PrivateASF | /irconline",
                 type: ActivityType.Watching
             }
         ],
@@ -206,7 +206,10 @@ wss.on("connection", async (ws, req) => {
                     .setColor(0x0099ff)
                     .setTimestamp();
 
-                channel.send({ embeds: [embed] });
+                channel.send({
+                    content: cleanText,
+                    embeds: [embed]
+                });
             }
 
             for (const client of users.values()) {
@@ -225,7 +228,7 @@ wss.on("connection", async (ws, req) => {
 
         if (users.get(ws.username) === ws) {
             users.delete(ws.username);
-            
+
             if (!SERVER_START_TIME || Date.now() - SERVER_START_TIME < JOIN_SUPPRESS_MS || ws.isDuplicate) return;
 
             const leaveMessage = JSON.stringify({
