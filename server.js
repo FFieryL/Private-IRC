@@ -205,9 +205,10 @@ wss.on("connection", async (ws, req) => {
                     .setDescription(cleanText)
                     .setColor(0x0099ff)
                     .setTimestamp();
-
+                const mentions = cleanText.match(/<@!?\d+>|<@&\d+>/g);
+                const mentionText = mentions ? mentions.join(" ") : null;
                 channel.send({
-                    content: cleanText,
+                    content: mentionText || undefined,
                     embeds: [embed]
                 });
             }
