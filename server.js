@@ -198,10 +198,13 @@ wss.on("connection", async (ws, req) => {
 
 
             const channel = discordClient.channels.cache.get(DISCORD_CHANNEL_ID);
-
+            const avatarUrl = `https://minotar.net/avatar/${cleanUser}`
             if (channel) {
                 const embed = new EmbedBuilder()
-                    .setAuthor({ name: cleanUser })
+                    .setAuthor({ 
+                        name: cleanUser,
+                        iconURL: avatarUrl
+                    })
                     .setDescription(cleanText)
                     .setColor(0x0099ff)
                     .setTimestamp();
