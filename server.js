@@ -163,11 +163,11 @@ wss.on("connection", async (ws, req) => {
                 client.send(joinMessage);
             }
         }
-        sendDiscordEmbed({
-            title: "Player Joined",
-            description: `${username} joined the game`,
-            color: 0x00ff00
-        });
+        // sendDiscordEmbed({
+        //     title: "Player Joined",
+        //     description: `${username} joined the game`,
+        //     color: 0x00ff00
+        // });
     }
 
 
