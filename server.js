@@ -58,7 +58,11 @@ discordClient.once("clientReady", async () => {
     }
 });
 
-discordClient.on("debug", (info) => console.log("DEBUG:", info));
+discordClient.on("debug", console.log);
+discordClient.on("error", console.error);
+discordClient.on("warn", console.log);
+process.on("unhandledRejection", console.error);
+process.on("uncaughtException", console.error);
 
 discordClient.login(process.env.DISCORD_BOT_TOKEN).catch(err => {
     console.error("Failed to login to Discord:", err);
