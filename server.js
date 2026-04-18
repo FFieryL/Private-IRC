@@ -58,7 +58,8 @@ discordClient.once("clientReady", async () => {
     }
 });
 
-discordClient.login(process.env.DISCORD_BOT_TOKEN);
+discordClient.login(process.env.DISCORD_BOT_TOKEN)
+    .catch(err => console.error("Login failed:", err));
 
 discordClient.on("messageCreate", (message) => {
     if (message.author.bot) return;
