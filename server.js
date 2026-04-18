@@ -4,6 +4,7 @@ const WebSocket = require("ws");
 const url = require("url");
 const mongoose = require("mongoose");
 const { Client, GatewayIntentBits, EmbedBuilder, REST, Routes, ActivityType, MessageFlags } = require("discord.js");
+require("dns").setDefaultResultOrder("ipv4first");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -33,7 +34,7 @@ const commands = [
 
 const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_BOT_TOKEN);
 
-discordClient.once("clientReady", async () => {
+discordClient.once("ready", async () => {
     console.log(`Discord bot ready: ${discordClient.user.tag}`);
 
     discordClient.user.setPresence({
@@ -56,10 +57,6 @@ discordClient.once("clientReady", async () => {
     } catch (err) {
         console.error(err);
     }
-});
-
-discordClient.on("error", (err) => {
-    console.error("Discord Client Error:", err);
 });
 
 discordClient.on("debug", (info) => console.log("DEBUG:", info));
