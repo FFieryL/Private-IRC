@@ -62,6 +62,8 @@ discordClient.on("error", (err) => {
     console.error("Discord Client Error:", err);
 });
 
+discordClient.on("debug", (info) => console.log("DEBUG:", info));
+
 discordClient.login(process.env.DISCORD_BOT_TOKEN).catch(err => {
     console.error("Failed to login to Discord:", err);
 });
