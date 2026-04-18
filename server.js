@@ -119,6 +119,10 @@ app.get("/users", async (req, res) => {
     `);
 });
 
+app.get("/health", (req, res) => {
+    res.status(200).send("OK");
+});
+
 const User = mongoose.model("User", userSchema);
 
 const users = new Map();
