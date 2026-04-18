@@ -57,7 +57,7 @@ discordClient.once("clientReady", async () => {
         console.error(err);
     }
 });
-
+console.log("DISCORD TOKEN:", process.env.DISCORD_BOT_TOKEN);
 discordClient.login(process.env.DISCORD_BOT_TOKEN)
     .catch(err => console.error("Login failed:", err));
 
