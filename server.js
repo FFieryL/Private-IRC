@@ -31,7 +31,7 @@ const commands = [
     }
 ];
 
-const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_BOT_TOKEN);
+const rest = new REST({ version: "10" }).setToken(process.env.test_token);
 
 discordClient.once("clientReady", async () => {
     console.log(`Discord bot ready: ${discordClient.user.tag}`);
@@ -60,7 +60,7 @@ discordClient.once("clientReady", async () => {
 
 discordClient.on("debug", (info) => console.log("DEBUG:", info));
 
-discordClient.login(process.env.DISCORD_BOT_TOKEN).catch(err => {
+discordClient.login(process.env.test_token).catch(err => {
     console.error("Failed to login to Discord:", err);
 });
 
